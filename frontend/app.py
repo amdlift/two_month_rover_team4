@@ -1,9 +1,10 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QGridLayout
-from PyQt6.QtCore import QPointF, QRectF, QLineF, Qt
+from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, QVBoxLayout
+from PyQt6.QtCore import QPointF, QRectF, QLineF, Qt, QTimer
 from PyQt6.QtGui import QPainter, QColor
 from enum import Enum
-# Only needed for access to command line arguments
+
 import sys
+import random
 
 class Direction(Enum):
     LEFT = 0
@@ -19,11 +20,13 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Abstain Base Station")
         joystick = Joystick()
         hstick = HorizontalJoystick()
+        sensorData = SensorDisplay()
 
         layout = QGridLayout()
 
         layout.addWidget(joystick, 0, 0)
         layout.addWidget(hstick, 1, 0)
+        layout.addWidget(sensorData, 0, 1)
 
         self.setMinimumSize(400,300)
 
@@ -145,6 +148,44 @@ class HorizontalJoystick(QWidget):
     def value(self):
         # Return normalized horizontal value: -1.0 (left) -> 1.0 (right)
         return self.knobX / self.__maxDistance
+
+class SensorDisplay(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Sensor Data")
+
+        # Create labels for each sensor
+        self.temp_label = QLabel("Temperature: -- °C")
+        self.press_label = QLabel("Pressure: -- hPa")
+        self.accel_label = QLabel("Acceleration: -- m/s²")
+        self.alt_label = QLabel("Altitude: -- m")
+
+        # Layout
+        layout = QVBoxLayout()
+        layout.addWidget(self.temp_label)
+        layout.addWidget(self.press_label)
+        layout.addWidget(self.accel_label)
+        layout.addWidget(self.alt_label)
+        self.setLayout(layout)
+
+        # Timer to update data every second
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_data)
+        self.timer.start(1000)  # 1000 ms = 1 sec
+
+    def update_data(self):
+        # Replace these random values with your real sensor readings
+        temperature = round(random.uniform(20, 25), 1)
+        pressure = round(random.uniform(1000, 1020), 1)
+        acceleration = round(random.uniform(0, 1), 2)
+        altitude = round(random.uniform(100, 120), 1)
+
+        # Update labels
+        self.temp_label.setText(f"Temperature: {temperature} °C")
+        self.press_label.setText(f"Pressure: {pressure} hPa")
+        self.accel_label.setText(f"Acceleration: {acceleration} m/s²")
+        self.alt_label.setText(f"Altitude: {altitude} m")
+
 
 app = QApplication(sys.argv)
 
