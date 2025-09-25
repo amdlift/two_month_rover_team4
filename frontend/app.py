@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QMainWindow, QPushButton, QGridLayout, QLabel, QVBoxLayout
 from PyQt6.QtCore import QPointF, QRectF, QLineF, Qt, QTimer
 from PyQt6.QtGui import QPainter, QColor
+import pyqtgraph as pg
 from enum import Enum
 
 import sys
+import time
 import random
 
 class Direction(Enum):
@@ -21,12 +23,19 @@ class MainWindow(QMainWindow):
         joystick = Joystick()
         hstick = HorizontalJoystick()
         sensorData = SensorDisplay()
+        sensorGraph = SensorGraph()
+
+        controls = QVBoxLayout()
+        controls.addWidget(joystick)
+        controls.addWidget(hstick)
+        controls_widget = QWidget()
+        controls_widget.setLayout(controls)
 
         layout = QGridLayout()
 
-        layout.addWidget(joystick, 0, 0)
-        layout.addWidget(hstick, 1, 0)
+        layout.addWidget(controls_widget, 0, 0)
         layout.addWidget(sensorData, 0, 1)
+        layout.addWidget(sensorGraph, 1, 1)
 
         self.setMinimumSize(400,300)
 
@@ -186,6 +195,75 @@ class SensorDisplay(QWidget):
         self.accel_label.setText(f"Acceleration: {acceleration} m/s²")
         self.alt_label.setText(f"Altitude: {altitude} m")
 
+class SensorGraph(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Real-Time Sensor Data")
+        self.resize(900, 700)
+
+        layout = QGridLayout()
+        self.setLayout(layout)
+
+        # Create four plots
+        self.temp_plot = pg.PlotWidget(title="Temperature (°C)")
+        self.press_plot = pg.PlotWidget(title="Pressure (hPa)")
+        self.accel_plot = pg.PlotWidget(title="Acceleration (m/s²)")
+        self.alt_plot = pg.PlotWidget(title="Altitude (m)")
+
+        # Add to layout in 2x2 grid
+        layout.addWidget(self.temp_plot, 0, 0)
+        layout.addWidget(self.press_plot, 0, 1)
+        layout.addWidget(self.accel_plot, 1, 0)
+        layout.addWidget(self.alt_plot, 1, 1)
+
+        # Initialize data storage
+        self.max_points = 100
+        self.timestamps = []  # shared x-axis in seconds
+        self.temp_data, self.press_data, self.accel_data, self.alt_data = [], [], [], []
+
+        # Create curve objects
+        self.temp_curve = self.temp_plot.plot(pen="r")
+        self.press_curve = self.press_plot.plot(pen="b")
+        self.accel_curve = self.accel_plot.plot(pen="g")
+        self.alt_curve = self.alt_plot.plot(pen="y")
+
+        # Start time
+        self.start_time = time.time()
+
+        # Timer to simulate sensor updates
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_data)
+        self.timer.start(200)  # update every 200 ms
+
+    def update_data(self):
+        # Current elapsed time (seconds)
+        t = time.time() - self.start_time
+
+        # Replace these with your actual sensor readings
+        temperature = round(random.uniform(20, 25), 2)
+        pressure = round(random.uniform(1000, 1020), 2)
+        acceleration = round(random.uniform(0, 2), 2)
+        altitude = round(random.uniform(100, 120), 2)
+
+        # Append new data
+        self.timestamps.append(t)
+        self.temp_data.append(temperature)
+        self.press_data.append(pressure)
+        self.accel_data.append(acceleration)
+        self.alt_data.append(altitude)
+
+        # Keep only last N points
+        self.timestamps = self.timestamps[-self.max_points:]
+        self.temp_data = self.temp_data[-self.max_points:]
+        self.press_data = self.press_data[-self.max_points:]
+        self.accel_data = self.accel_data[-self.max_points:]
+        self.alt_data = self.alt_data[-self.max_points:]
+
+        # Update curves with shared time axis
+        self.temp_curve.setData(self.timestamps, self.temp_data)
+        self.press_curve.setData(self.timestamps, self.press_data)
+        self.accel_curve.setData(self.timestamps, self.accel_data)
+        self.alt_curve.setData(self.timestamps, self.alt_data)
 
 app = QApplication(sys.argv)
 
